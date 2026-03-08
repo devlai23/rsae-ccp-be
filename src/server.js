@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import express from 'express';
 
 import authRoutes from './routes/authRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import proposalsRoutes from './routes/proposalsRoutes.js';
 
 dotenv.config();
 
@@ -39,6 +41,8 @@ app.use((req, res, next) => {
 });
 
 app.use('/auth', authRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/proposals', proposalsRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });

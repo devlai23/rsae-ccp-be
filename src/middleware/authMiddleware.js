@@ -1,6 +1,15 @@
 import admin from '../config/firebase.js';
 
 const authMiddleware = async (req, res, next) => {
+  if (process.env.FIREBASE_BYPASS_AUTH === 'true') {
+    req.user = {
+      uid: 'dev-admin-uid',
+      email: 'admin@local.dev',
+      role: 'admin',
+    };
+    return next();
+  }
+
   try {
     const authHeader = req.headers.authorization;
     const token =
