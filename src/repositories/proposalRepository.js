@@ -7,6 +7,7 @@ const proposalRepository = {
   getCountsByCategory: () => provider.getCountsByCategory(),
   getCountsByStatus: () => provider.getCountsByStatus(),
   getTotalCount: () => provider.getTotalCount(),
+  create: (proposalData) => provider.create(proposalData),
 };
 
 export default proposalRepository;

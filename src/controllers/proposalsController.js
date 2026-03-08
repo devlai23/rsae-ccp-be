@@ -73,6 +73,43 @@ const proposalsController = {
       });
     }
   },
+
+  async createProposal(req, res) {
+    try {
+      const { title, category, description, submittedBy, tags } = req.body;
+
+      if (!title || !category || !description || !submittedBy) {
+        return res.status(400).json({
+          error:
+            'Missing required fields: title, category, description, submittedBy',
+        });
+      }
+
+      if (typeof title !== 'string' || title.trim().length < 5) {
+        return res
+          .status(400)
+          .json({ error: 'Title must be at least 5 characters long' });
+      }
+
+      const newProposal = await proposalRepository.create({
+        title: title.trim(),
+        category: category.trim(),
+        description: description.trim(),
+        submittedBy: submittedBy.trim(),
+        tags: Array.isArray(tags) ? tags : [],
+      });
+
+      return res.status(201).json(newProposal);
+    } catch (error) {
+      console.error('Create proposal error:', error);
+      return res.status(500).json({
+        error:
+          process.env.NODE_ENV === 'production'
+            ? 'Failed to create proposal'
+            : error.message,
+      });
+    }
+  },
 };
 
 export default proposalsController;
