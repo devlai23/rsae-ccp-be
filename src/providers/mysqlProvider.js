@@ -3,7 +3,13 @@ import { pool } from '../config/database.js';
 export default {
   async createUser({ uid, username, email, firstname, lastname }) {
     const sql = `INSERT INTO users (firebase_uid, username, email, firstname, lastname) VALUES (?, ?, ?, ?, ?)`;
-    const [result] = await pool.execute(sql, [uid, username, email, firstname, lastname]);
+    const [result] = await pool.execute(sql, [
+      uid,
+      username,
+      email,
+      firstname,
+      lastname,
+    ]);
     return { id: result.insertId, uid, username, email };
   },
 
@@ -27,7 +33,9 @@ export default {
   },
 
   async getAll() {
-    const [rows] = await pool.execute(`SELECT username, email, firstname, lastname FROM users ORDER BY username ASC`);
+    const [rows] = await pool.execute(
+      `SELECT username, email, firstname, lastname FROM users ORDER BY username ASC`
+    );
     return rows;
-  }
+  },
 };

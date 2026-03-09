@@ -120,6 +120,36 @@ const proposalPostgresProvider = {
     const { rows } = await pgPool.query(sql);
     return rows;
   },
+
+  async create(proposalData) {
+    const { 
+      title, 
+      category, 
+      description, 
+      submittedBy = 'Anonymous Resident', 
+      tags = [] 
+    } = proposalData;
+
+    const sql = `
+      INSERT INTO proposals (title, category, description, submitted_by, tags)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING 
+        id, 
+        title, 
+        category, 
+        description, 
+        votes, 
+        submitted_by AS "submittedBy", 
+        submitted_at AS "submittedAt", 
+        status, 
+        tags;
+    `;
+    
+    const values = [title, category, description, submittedBy, tags];
+    const { rows } = await pgPool.query(sql, values);
+    
+    return rows[0];
+  },
 };
 
 export default proposalPostgresProvider;

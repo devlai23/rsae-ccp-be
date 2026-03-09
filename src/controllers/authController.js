@@ -23,12 +23,12 @@ const authController = {
         username,
         email,
         firstname,
-        lastname
-      })
+        lastname,
+      });
 
       res.status(201).json({
         message: 'User created successfully',
-        user
+        user,
       });
     } catch (error) {
       console.error('Signup error:', error);
@@ -85,11 +85,13 @@ const authController = {
 
       const user = await userRepository.findByUid(decodedToken.uid);
 
-      return res.json(user || {
-        firebaseUid: decodedToken.uid,
-        email: decodedToken.email,
-        username: decodedToken.email?.split('@')[0] || 'user',
-      });
+      return res.json(
+        user || {
+          firebaseUid: decodedToken.uid,
+          email: decodedToken.email,
+          username: decodedToken.email?.split('@')[0] || 'user',
+        }
+      );
     } catch (error) {
       console.error('ME endpoint error:', error);
       res.status(401).json({ error: 'Authentication failed' });
@@ -135,13 +137,14 @@ const authController = {
 
       const user = await userRepository.upsertUser({
         uid: decodedToken.uid,
-        username: decodedToken.name?.replace(/\s+/g, '_').toLowerCase() ||
+        username:
+          decodedToken.name?.replace(/\s+/g, '_').toLowerCase() ||
           decodedToken.email?.split('@')[0] ||
           `user_${decodedToken.uid.substring(0, 8)}`,
         email: decodedToken.email,
         firstname: decodedToken.name?.split(' ')[0] || null,
         lastname: decodedToken.name?.split(' ').slice(1).join(' ') || null,
-      })
+      });
 
       res.cookie('session', idToken, {
         httpOnly: true,

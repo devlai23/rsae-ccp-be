@@ -3,7 +3,13 @@ import { pgPool } from '../config/database.js';
 export default {
   async createUser({ uid, username, email, firstname, lastname }) {
     const sql = `INSERT INTO users (firebase_uid, username, email, firstname, lastname) VALUES ($1, $2, $3, $4, $5) RETURNING id`;
-    const { rows } = await pgPool.query(sql, [uid, username, email, firstname, lastname]);
+    const { rows } = await pgPool.query(sql, [
+      uid,
+      username,
+      email,
+      firstname,
+      lastname,
+    ]);
     return { id: rows[0].id, uid, username, email };
   },
 
@@ -27,7 +33,39 @@ export default {
   },
 
   async getAll() {
-    const { rows } = await pgPool.query(`SELECT username, email, firstname, lastname FROM users ORDER BY username ASC`);
+    const { rows } = await pgPool.query(
+      `SELECT username, email, firstname, lastname FROM users ORDER BY username ASC`
+    );
     return rows;
-  }
+  },
+
+  async create(proposalData) {
+    const {
+      title,
+      category,
+      description,
+      submittedBy = 'Anonymous Resident',
+      tags = [],
+    } = proposalData;
+
+    const sql = `
+    INSERT INTO proposals (title, category, description, submitted_by, tags)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING 
+      id, 
+      title, 
+      category, 
+      description, 
+      votes, 
+      submitted_by AS "submittedBy", 
+      submitted_at AS "submittedAt", 
+      status, 
+      tags;
+  `;
+
+    const values = [title, category, description, submittedBy, tags];
+    const { rows } = await pgPool.query(sql, values);
+
+    return rows[0];
+  },
 };
