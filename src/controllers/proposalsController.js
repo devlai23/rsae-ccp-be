@@ -3,6 +3,32 @@ import proposalRepository from '../repositories/proposalRepository.js';
 const parseSort = (value) => (value === 'oldest' ? 'oldest' : 'newest');
 
 const proposalsController = {
+  async updateProposalStatus(req, res) {
+    try {
+      const proposalId = Number.parseInt(req.params.id, 10);
+      const { status } = req.body;
+      if (Number.isNaN(proposalId) || proposalId <= 0) {
+        return res.status(400).json({ error: 'Invalid proposal id' });
+      }
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status value' });
+      }
+      const updated = await proposalRepository.updateStatus(proposalId, status);
+      if (!updated) {
+        return res.status(404).json({ error: 'Proposal not found' });
+      }
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Update proposal status error:', error);
+      return res.status(500).json({
+        error:
+          process.env.NODE_ENV === 'production'
+            ? 'Failed to update proposal status'
+            : error.message,
+      });
+    }
+  },
+
   async getProposals(req, res) {
     try {
       const filters = {

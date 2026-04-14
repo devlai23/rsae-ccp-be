@@ -10,4 +10,6 @@ router.get('/:id', proposalsController.getProposalById);
 
 router.post('/', proposalsController.createProposal);
 
+router.put('/:id/status', proposalsController.updateProposalStatus);
+
 export default router;

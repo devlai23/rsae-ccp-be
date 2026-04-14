@@ -30,6 +30,16 @@ const buildWhereClause = ({ search, category, status, tag }, values) => {
 };
 
 const proposalPostgresProvider = {
+  async updateStatus(id, status) {
+    const sql = `
+      UPDATE proposals
+      SET status = $2
+      WHERE id = $1
+      RETURNING id;
+    `;
+    const { rows } = await pgPool.query(sql, [id, status]);
+    return rows.length > 0;
+  },
   async getAll(filters = {}) {
     const values = [];
     const whereClause = buildWhereClause(filters, values);
