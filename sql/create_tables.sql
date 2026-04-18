@@ -22,3 +22,13 @@ CREATE TABLE IF NOT EXISTS proposals (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS proposal_comments (
+  id           SERIAL PRIMARY KEY,
+  proposal_id  INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
+  author       VARCHAR(150) NOT NULL,
+  body         TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_proposal_comments_proposal_id ON proposal_comments(proposal_id);

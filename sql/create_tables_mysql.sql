@@ -29,3 +29,15 @@ CREATE TABLE IF NOT EXISTS proposals (
   created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS proposal_comments (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  proposal_id   INT NOT NULL,
+  author        VARCHAR(150) NOT NULL,
+  body          TEXT NOT NULL,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_proposal_comments_proposal
+    FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_proposal_comments_proposal_id ON proposal_comments(proposal_id);
