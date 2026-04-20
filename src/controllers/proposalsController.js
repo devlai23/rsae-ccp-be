@@ -1,6 +1,15 @@
 import proposalRepository from '../repositories/proposalRepository.js';
+import userRepository from '../repositories/userRepository.js';
 
 const parseSort = (value) => (value === 'oldest' ? 'oldest' : 'newest');
+
+const getUserIdFromRequest = async (req) => {
+  const firebaseUid = req.user?.uid;
+  if (!firebaseUid) return null;
+
+  const user = await userRepository.findByUid(firebaseUid);
+  return user?.id || null;
+};
 
 const proposalsController = {
   async updateProposalStatus(req, res) {
@@ -31,6 +40,8 @@ const proposalsController = {
 
   async getProposals(req, res) {
     try {
+      const userId = await getUserIdFromRequest(req);
+
       const filters = {
         search: req.query.search?.trim() || '',
         category: req.query.category?.trim() || '',
@@ -39,7 +50,7 @@ const proposalsController = {
         sort: parseSort(req.query.sort),
       };
 
-      const items = await proposalRepository.getAll(filters);
+      const items = await proposalRepository.getAll(filters, userId);
 
       return res.status(200).json({
         items,
@@ -68,7 +79,8 @@ const proposalsController = {
         return res.status(400).json({ error: 'Invalid proposal id' });
       }
 
-      const proposal = await proposalRepository.getById(proposalId);
+      const userId = await getUserIdFromRequest(req);
+      const proposal = await proposalRepository.getById(proposalId, userId);
       if (!proposal) {
         return res.status(404).json({ error: 'Proposal not found' });
       }

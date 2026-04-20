@@ -40,48 +40,61 @@ const proposalPostgresProvider = {
     const { rows } = await pgPool.query(sql, [id, status]);
     return rows.length > 0;
   },
-  async getAll(filters = {}) {
+  async getAll(filters = {}, userId = null) {
     const values = [];
     const whereClause = buildWhereClause(filters, values);
     const sortOrder = filters.sort === 'oldest' ? 'ASC' : 'DESC';
 
+    const userVoteJoin = userId
+      ? `LEFT JOIN proposal_votes pv ON pv.proposal_id = proposals.id AND pv.user_id = ${userId}`
+      : '';
+    const userVoteSelect = userId ? `, pv.vote_type AS "userVote"` : '';
+
     const sql = `
       SELECT
-        id,
-        title,
-        category,
-        description,
-        votes,
-        submitted_by AS "submittedBy",
-        submitted_at AS "submittedAt",
-        status,
-        COALESCE(tags, ARRAY[]::TEXT[]) AS tags
+        proposals.id,
+        proposals.title,
+        proposals.category,
+        proposals.description,
+        proposals.votes,
+        proposals.submitted_by AS "submittedBy",
+        proposals.submitted_at AS "submittedAt",
+        proposals.status,
+        COALESCE(proposals.tags, ARRAY[]::TEXT[]) AS tags
+        ${userVoteSelect}
       FROM proposals
+      ${userVoteJoin}
       ${whereClause}
-      ORDER BY submitted_at ${sortOrder};
+      ORDER BY proposals.submitted_at ${sortOrder};
     `;
 
     const { rows } = await pgPool.query(sql, values);
     return rows;
   },
 
-  async getById(id) {
+  async getById(id, userId = null) {
+    const userVoteJoin = userId
+      ? `LEFT JOIN proposal_votes pv ON pv.proposal_id = proposals.id AND pv.user_id = ${userId}`
+      : '';
+    const userVoteSelect = userId ? `, pv.vote_type AS "userVote"` : '';
+
     const sql = `
       SELECT
-        id,
-        title,
-        category,
-        description,
-        votes,
-        submitted_by AS "submittedBy",
-        submitted_at AS "submittedAt",
-        status,
-        COALESCE(tags, ARRAY[]::TEXT[]) AS tags
+        proposals.id,
+        proposals.title,
+        proposals.category,
+        proposals.description,
+        proposals.votes,
+        proposals.submitted_by AS "submittedBy",
+        proposals.submitted_at AS "submittedAt",
+        proposals.status,
+        COALESCE(proposals.tags, ARRAY[]::TEXT[]) AS tags
+        ${userVoteSelect}
       FROM proposals
-      WHERE id = $1
+      ${userVoteJoin}
+      WHERE proposals.id = $1
       LIMIT 1;
     `;
-
     const { rows } = await pgPool.query(sql, [id]);
     return rows[0] || null;
   },
@@ -96,7 +109,6 @@ const proposalPostgresProvider = {
       WHERE tag IS NOT NULL AND tag <> ''
       ORDER BY tag ASC;
     `;
-
     const { rows } = await pgPool.query(sql);
     return rows.map((row) => row.tag);
   },
@@ -108,7 +120,6 @@ const proposalPostgresProvider = {
       GROUP BY category
       ORDER BY category ASC;
     `;
-
     const { rows } = await pgPool.query(sql);
     return rows;
   },
@@ -126,38 +137,37 @@ const proposalPostgresProvider = {
       FROM proposals
       GROUP BY status;
     `;
-
     const { rows } = await pgPool.query(sql);
     return rows;
   },
 
   async create(proposalData) {
-    const { 
-      title, 
-      category, 
-      description, 
-      submittedBy = 'Anonymous Resident', 
-      tags = [] 
+    const {
+      title,
+      category,
+      description,
+      submittedBy = 'Anonymous Resident',
+      tags = []
     } = proposalData;
 
     const sql = `
       INSERT INTO proposals (title, category, description, submitted_by, tags)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING 
-        id, 
-        title, 
-        category, 
-        description, 
-        votes, 
-        submitted_by AS "submittedBy", 
-        submitted_at AS "submittedAt", 
-        status, 
+      RETURNING
+        id,
+        title,
+        category,
+        description,
+        votes,
+        submitted_by AS "submittedBy",
+        submitted_at AS "submittedAt",
+        status,
         tags;
     `;
-    
+
     const values = [title, category, description, submittedBy, tags];
     const { rows } = await pgPool.query(sql, values);
-    
+
     return rows[0];
   },
 };
