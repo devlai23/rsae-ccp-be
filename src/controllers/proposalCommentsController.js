@@ -11,14 +11,14 @@ const proposalCommentsController = {
         return res.status(400).json({ error: 'Invalid proposal id' });
       }
 
-      const exists = await proposalCommentsRepository.proposalExists(proposalId);
+      const exists =
+        await proposalCommentsRepository.proposalExists(proposalId);
       if (!exists) {
         return res.status(404).json({ error: 'Proposal not found' });
       }
 
-      const comments = await proposalCommentsRepository.listByProposalId(
-        proposalId
-      );
+      const comments =
+        await proposalCommentsRepository.listByProposalId(proposalId);
       return res.status(200).json({ comments });
     } catch (error) {
       console.error('List proposal comments error:', error);
@@ -56,7 +56,8 @@ const proposalCommentsController = {
         author = rawAuthor.trim().slice(0, 150);
       }
 
-      const exists = await proposalCommentsRepository.proposalExists(proposalId);
+      const exists =
+        await proposalCommentsRepository.proposalExists(proposalId);
       if (!exists) {
         return res.status(404).json({ error: 'Proposal not found' });
       }
