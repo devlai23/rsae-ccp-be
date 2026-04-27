@@ -48,7 +48,8 @@ const proposalCommentsPostgresProvider = {
         body,
         created_at
       FROM proposal_comments
-      WHERE proposal_id = ${wherePlaceholder}
+      WHERE proposal_id = $1
+        AND deleted_at IS NULL
       ORDER BY created_at ASC;
     `;
     const rows = await queryRows(sql, [proposalId]);
@@ -97,6 +98,19 @@ const proposalCommentsPostgresProvider = {
     `;
     const rows = await queryRows(sql, [proposalId, author, body]);
     return rows[0] ? mapCommentRow(rows[0]) : null;
+  },
+
+  async softDelete({ commentId, deletedByUid }) {
+    const sql = `
+      UPDATE proposal_comments
+      SET deleted_at = NOW(),
+          deleted_by_uid = $2
+      WHERE id = $1
+        AND deleted_at IS NULL
+      RETURNING id, proposal_id AS "proposalId", body;
+    `;
+    const { rows } = await pgPool.query(sql, [commentId, deletedByUid ?? null]);
+    return rows[0] || null;
   },
 };
 

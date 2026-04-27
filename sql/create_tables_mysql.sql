@@ -31,13 +31,31 @@ CREATE TABLE IF NOT EXISTS proposals (
 );
 
 CREATE TABLE IF NOT EXISTS proposal_comments (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  proposal_id   INT NOT NULL,
-  author        VARCHAR(150) NOT NULL,
-  body          TEXT NOT NULL,
-  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  proposal_id      INT NOT NULL,
+  author           VARCHAR(150) NOT NULL,
+  body             TEXT NOT NULL,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at       DATETIME DEFAULT NULL,
+  deleted_by_uid   VARCHAR(128) DEFAULT NULL,
+
   CONSTRAINT fk_proposal_comments_proposal
     FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_proposal_comments_proposal_id ON proposal_comments(proposal_id);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  actor_uid    VARCHAR(128) DEFAULT NULL,
+  actor_email  VARCHAR(255) DEFAULT NULL,
+  actor_role   VARCHAR(40) DEFAULT NULL,
+  action_type  VARCHAR(80) NOT NULL,
+  entity_type  VARCHAR(40) NOT NULL,
+  entity_id    VARCHAR(128) DEFAULT NULL,
+  metadata     JSON NOT NULL,
+  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX idx_audit_logs_created (created_at),
+  INDEX idx_audit_logs_action (action_type)
+);

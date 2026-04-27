@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import express from 'express';
 
 import authRoutes from './routes/authRoutes.js';
+import auditLogsRoutes from './routes/auditLogsRoutes.js';
+import commentsRoutes from './routes/commentsRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import proposalsRoutes from './routes/proposalsRoutes.js';
 
@@ -41,6 +43,8 @@ app.use((req, res, next) => {
 });
 
 app.use('/auth', authRoutes);
+app.use('/audit-logs', auditLogsRoutes);
+app.use('/comments', commentsRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/proposals', proposalsRoutes);
 
