@@ -1,5 +1,6 @@
 import admin from '../config/firebase.js';
 import userRepository from '../repositories/userRepository.js';
+import auditLogService from '../services/auditLogService.js';
 
 const authController = {
   async signup(req, res) {
@@ -66,6 +67,16 @@ const authController = {
         message: 'Login successful',
         uid: decodedToken.uid,
       });
+
+      await auditLogService.write(
+        { user: { uid: decodedToken.uid, email: decodedToken.email, role: decodedToken.role } },
+        {
+          actionType: 'auth.login',
+          entityType: 'auth',
+          entityId: decodedToken.uid,
+          metadata: { provider: 'firebase' },
+        }
+      );
     } catch (error) {
       console.error('Login error:', error);
       res.status(401).json({ error: 'Authentication failed' });
@@ -98,8 +109,37 @@ const authController = {
     }
   },
 
-  async logout(_req, res) {
+  async logout(req, res) {
     try {
+      const token =
+        req.cookies.session || req.headers.authorization?.split(' ')[1];
+
+      if (token) {
+        try {
+          const decodedToken = await admin.auth().verifyIdToken(token);
+          await auditLogService.write(
+            {
+              user: {
+                uid: decodedToken.uid,
+                email: decodedToken.email,
+                role: decodedToken.role,
+              },
+            },
+            {
+              actionType: 'auth.logout',
+              entityType: 'auth',
+              entityId: decodedToken.uid,
+              metadata: { provider: 'firebase' },
+            }
+          );
+        } catch (verifyError) {
+          console.warn(
+            'Logout token verify failed:',
+            verifyError?.message || verifyError
+          );
+        }
+      }
+
       res.clearCookie('session', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -155,6 +195,16 @@ const authController = {
       });
 
       res.json({ success: true, user });
+
+      await auditLogService.write(
+        { user: { uid: decodedToken.uid, email: decodedToken.email, role: decodedToken.role } },
+        {
+          actionType: 'auth.login',
+          entityType: 'auth',
+          entityId: decodedToken.uid,
+          metadata: { provider: 'google' },
+        }
+      );
     } catch (error) {
       console.error('Token handling error:', error);
       if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {

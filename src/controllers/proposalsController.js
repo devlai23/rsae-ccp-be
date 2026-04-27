@@ -1,4 +1,5 @@
 import proposalRepository from '../repositories/proposalRepository.js';
+import auditLogService from '../services/auditLogService.js';
 
 const parseSort = (value) => (value === 'oldest' ? 'oldest' : 'newest');
 
@@ -17,6 +18,14 @@ const proposalsController = {
       if (!updated) {
         return res.status(404).json({ error: 'Proposal not found' });
       }
+
+      await auditLogService.write(req, {
+        actionType: status === 'approved' ? 'proposal.approve' : 'proposal.reject',
+        entityType: 'proposal',
+        entityId: String(proposalId),
+        metadata: { status },
+      });
+
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('Update proposal status error:', error);

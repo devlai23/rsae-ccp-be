@@ -22,3 +22,35 @@ CREATE TABLE IF NOT EXISTS proposals (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS comments (
+  id               SERIAL PRIMARY KEY,
+  proposal_id      INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
+  author_uid       TEXT DEFAULT NULL,
+  author_display   VARCHAR(150) NOT NULL DEFAULT 'Anonymous Resident',
+  body             TEXT NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at       TIMESTAMPTZ DEFAULT NULL,
+  deleted_by_uid   TEXT DEFAULT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_proposal_id_created_at
+  ON comments (proposal_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id           SERIAL PRIMARY KEY,
+  actor_uid    TEXT DEFAULT NULL,
+  actor_email  TEXT DEFAULT NULL,
+  actor_role   TEXT DEFAULT NULL,
+  action_type  VARCHAR(80) NOT NULL,
+  entity_type  VARCHAR(40) NOT NULL,
+  entity_id    TEXT DEFAULT NULL,
+  metadata     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at
+  ON audit_logs (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action_type
+  ON audit_logs (action_type);
