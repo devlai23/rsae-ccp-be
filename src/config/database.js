@@ -1,16 +1,4 @@
-// === Supabase / PostgreSQL (default) ===
-// Set DATABASE_URL in your .env file (found in Supabase project settings → Database → Connection string)
 import dotenv from 'dotenv';
-// const pgPool = new Pool({
-//   connectionString: process.env.DATABASE_URL,
-//   ssl: { rejectUnauthorized: false }, // required for Supabase
-// });
-
-// export { pgPool };
-
-// === AWS RDS / MySQL (uncomment below and comment out the Postgres block above to switch) ===
-// Also update src/repositories/userRepository.js to use mysqlProvider.
-//
 import fs from 'fs';
 import ini from 'ini';
 import mysql2 from 'mysql2/promise';
