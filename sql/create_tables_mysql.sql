@@ -30,19 +30,20 @@ CREATE TABLE IF NOT EXISTS proposals (
   updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS comments (
-  id              INT AUTO_INCREMENT PRIMARY KEY,
-  proposal_id     INT NOT NULL,
-  author_uid      VARCHAR(128) DEFAULT NULL,
-  author_display  VARCHAR(150) NOT NULL DEFAULT 'Anonymous Resident',
-  body            TEXT NOT NULL,
-  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  deleted_at      DATETIME DEFAULT NULL,
-  deleted_by_uid  VARCHAR(128) DEFAULT NULL,
+CREATE TABLE IF NOT EXISTS proposal_comments (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  proposal_id      INT NOT NULL,
+  author           VARCHAR(150) NOT NULL,
+  body             TEXT NOT NULL,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at       DATETIME DEFAULT NULL,
+  deleted_by_uid   VARCHAR(128) DEFAULT NULL,
 
-  INDEX idx_comments_proposal_created (proposal_id, created_at),
-  CONSTRAINT fk_comments_proposal FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+  CONSTRAINT fk_proposal_comments_proposal
+    FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_proposal_comments_proposal_id ON proposal_comments(proposal_id);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id           INT AUTO_INCREMENT PRIMARY KEY,

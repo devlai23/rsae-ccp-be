@@ -120,6 +120,24 @@ CREATE TABLE IF NOT EXISTS users (
 
 Edit this schema to fit your project's data model.
 
+### Proposal comments (existing databases)
+
+If you created your database before `proposal_comments` existed, run this **once**
+in the Supabase **SQL Editor** (or apply the full current `sql/create_tables.sql`,
+which is idempotent):
+
+```sql
+CREATE TABLE IF NOT EXISTS proposal_comments (
+  id           SERIAL PRIMARY KEY,
+  proposal_id  INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
+  author       VARCHAR(150) NOT NULL,
+  body         TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_proposal_comments_proposal_id ON proposal_comments(proposal_id);
+```
+
 ---
 
 ## API Endpoints
@@ -232,6 +250,46 @@ Authorization: Bearer <firebase-id-token>
 ```
 POST /auth/logout
 ```
+
+---
+
+### Proposal comments
+
+List comments for a proposal (returns `404` if the proposal id does not exist):
+
+```
+GET /proposals/:id/comments
+```
+
+Response:
+
+```json
+{
+  "comments": [
+    {
+      "id": 1,
+      "proposalId": 5,
+      "author": "Ada",
+      "body": "Great idea.",
+      "createdAt": "2026-04-18T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+Create a comment (`author` optional; defaults to `Anonymous Resident`; body required, max 8000 characters):
+
+```
+POST /proposals/:id/comments
+Content-Type: application/json
+
+{
+  "body": "I support this.",
+  "author": "Resident name"
+}
+```
+
+Returns **201** with the created comment object. Returns **404** if the proposal does not exist.
 
 ---
 

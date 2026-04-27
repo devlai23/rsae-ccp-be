@@ -23,19 +23,18 @@ CREATE TABLE IF NOT EXISTS proposals (
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS comments (
+CREATE TABLE IF NOT EXISTS proposal_comments (
   id               SERIAL PRIMARY KEY,
   proposal_id      INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
-  author_uid       TEXT DEFAULT NULL,
-  author_display   VARCHAR(150) NOT NULL DEFAULT 'Anonymous Resident',
+  author           VARCHAR(150) NOT NULL,
   body             TEXT NOT NULL,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at       TIMESTAMPTZ DEFAULT NULL,
   deleted_by_uid   TEXT DEFAULT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_comments_proposal_id_created_at
-  ON comments (proposal_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_proposal_comments_proposal_id
+  ON proposal_comments(proposal_id);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id           SERIAL PRIMARY KEY,
