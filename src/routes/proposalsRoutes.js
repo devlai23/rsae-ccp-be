@@ -12,7 +12,7 @@ router.get('/:id/comments', proposalCommentsController.listByProposal);
 router.post('/:id/comments', proposalCommentsController.create);
 router.get('/:id', proposalsController.getProposalById);
 
-router.post('/', authMiddleware, proposalsController.createProposal);
+router.post('/', proposalsController.createProposal);
 
 router.put('/:id/status', authMiddleware, proposalsController.updateProposalStatus);
 
