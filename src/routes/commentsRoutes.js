@@ -6,6 +6,11 @@ import requireAdmin from '../middleware/requireAdmin.js';
 
 const router = express.Router();
 
-router.delete('/:id', authMiddleware, requireAdmin, commentsController.deleteComment);
+router.delete(
+  '/:id',
+  authMiddleware,
+  requireAdmin,
+  commentsController.deleteComment
+);
 
 export default router;

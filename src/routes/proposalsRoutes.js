@@ -14,6 +14,10 @@ router.get('/:id', proposalsController.getProposalById);
 
 router.post('/', proposalsController.createProposal);
 
-router.put('/:id/status', authMiddleware, proposalsController.updateProposalStatus);
+router.put(
+  '/:id/status',
+  authMiddleware,
+  proposalsController.updateProposalStatus
+);
 
 export default router;

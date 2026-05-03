@@ -69,7 +69,13 @@ const authController = {
       });
 
       await auditLogService.write(
-        { user: { uid: decodedToken.uid, email: decodedToken.email, role: decodedToken.role } },
+        {
+          user: {
+            uid: decodedToken.uid,
+            email: decodedToken.email,
+            role: decodedToken.role,
+          },
+        },
         {
           actionType: 'auth.login',
           entityType: 'auth',
@@ -197,7 +203,13 @@ const authController = {
       res.json({ success: true, user });
 
       await auditLogService.write(
-        { user: { uid: decodedToken.uid, email: decodedToken.email, role: decodedToken.role } },
+        {
+          user: {
+            uid: decodedToken.uid,
+            email: decodedToken.email,
+            role: decodedToken.role,
+          },
+        },
         {
           actionType: 'auth.login',
           entityType: 'auth',

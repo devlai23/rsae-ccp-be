@@ -20,7 +20,8 @@ const proposalsController = {
       }
 
       await auditLogService.write(req, {
-        actionType: status === 'approved' ? 'proposal.approve' : 'proposal.reject',
+        actionType:
+          status === 'approved' ? 'proposal.approve' : 'proposal.reject',
         entityType: 'proposal',
         entityId: String(proposalId),
         metadata: { status },
