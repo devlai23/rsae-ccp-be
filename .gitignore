@@ -2,7 +2,11 @@
 .env
 *.ini
 node_modules/
-
+rds-config.ini
 .sql
+
+# Firebase service account (never commit)
+firebase-service-account.json
+*-firebase-adminsdk*.json
 
 

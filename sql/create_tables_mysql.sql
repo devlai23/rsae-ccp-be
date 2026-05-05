@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS proposals (
   updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Soft-delete columns (deleted_at, deleted_by_uid) are required by the API.
+-- If your DB was created from an older schema, run:
+--   sql/migrate_proposal_comments_soft_delete_mysql.sql
 CREATE TABLE IF NOT EXISTS proposal_comments (
   id               INT AUTO_INCREMENT PRIMARY KEY,
   proposal_id      INT NOT NULL,
