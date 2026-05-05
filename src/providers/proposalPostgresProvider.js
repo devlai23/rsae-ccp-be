@@ -1,4 +1,4 @@
-import { pgPool } from '../config/database.js';
+import { pool, pgPool } from '../config/database.js';
 
 const isMySql = typeof pgPool.execute === 'function';
 
@@ -269,6 +269,155 @@ const proposalPostgresProvider = {
     const rows = await queryRows(sql, values);
 
     return rows[0] ? normalizeProposalRow(rows[0]) : null;
+  },
+
+  async getVotedProposalIds(voterId) {
+    if (!voterId) {
+      return new Set();
+    }
+    if (isMySql) {
+      const sql =
+        'SELECT proposal_id FROM proposal_votes WHERE voter_id = ?';
+      const rows = await queryRows(sql, [voterId]);
+      return new Set(rows.map((r) => Number(r.proposal_id ?? r.proposalId)));
+    }
+
+    const sql =
+      'SELECT proposal_id FROM proposal_votes WHERE voter_id = $1';
+    const rows = await queryRows(sql, [voterId]);
+    return new Set(rows.map((r) => Number(r.proposal_id ?? r.proposalId)));
+  },
+
+  /**
+   * One vote per (proposal_id, voter_id). Caller supplies voter_id from cookie.
+   */
+  async voteOnce(proposalId, voterId) {
+    if (isMySql) {
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+
+        const [rows] = await conn.execute(
+          'SELECT id, status, votes FROM proposals WHERE id = ? FOR UPDATE',
+          [proposalId]
+        );
+        if (!rows?.length) {
+          await conn.rollback();
+          return { ok: false, code: 'not_found' };
+        }
+
+        const proposal = rows[0];
+        if (proposal.status !== 'approved') {
+          await conn.rollback();
+          return {
+            ok: false,
+            code: 'not_voteable',
+            votes: Number(proposal.votes || 0),
+          };
+        }
+
+        try {
+          await conn.execute(
+            'INSERT INTO proposal_votes (proposal_id, voter_id) VALUES (?, ?)',
+            [proposalId, voterId]
+          );
+        } catch (insertErr) {
+          if (insertErr.code === 'ER_DUP_ENTRY') {
+            await conn.rollback();
+            return {
+              ok: false,
+              code: 'already_voted',
+              votes: Number(proposal.votes || 0),
+            };
+          }
+          throw insertErr;
+        }
+
+        await conn.execute(
+          'UPDATE proposals SET votes = votes + 1 WHERE id = ?',
+          [proposalId]
+        );
+
+        const [after] = await conn.execute(
+          'SELECT votes FROM proposals WHERE id = ?',
+          [proposalId]
+        );
+
+        await conn.commit();
+        return {
+          ok: true,
+          votes: Number(after[0]?.votes ?? 0),
+        };
+      } catch (e) {
+        await conn.rollback();
+        throw e;
+      } finally {
+        conn.release();
+      }
+    }
+
+    const client = await pgPool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const lockRes = await client.query(
+        'SELECT id, status, votes FROM proposals WHERE id = $1 FOR UPDATE',
+        [proposalId]
+      );
+
+      if (!lockRes.rows?.length) {
+        await client.query('ROLLBACK');
+        return { ok: false, code: 'not_found' };
+      }
+
+      const proposal = lockRes.rows[0];
+      if (proposal.status !== 'approved') {
+        await client.query('ROLLBACK');
+        return {
+          ok: false,
+          code: 'not_voteable',
+          votes: Number(proposal.votes || 0),
+        };
+      }
+
+      const insertRes = await client.query(
+        `INSERT INTO proposal_votes (proposal_id, voter_id)
+         VALUES ($1, $2)
+         ON CONFLICT (proposal_id, voter_id) DO NOTHING
+         RETURNING id`,
+        [proposalId, voterId]
+      );
+
+      if (insertRes.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return {
+          ok: false,
+          code: 'already_voted',
+          votes: Number(proposal.votes || 0),
+        };
+      }
+
+      await client.query(
+        'UPDATE proposals SET votes = votes + 1 WHERE id = $1',
+        [proposalId]
+      );
+
+      const countRes = await client.query(
+        'SELECT votes FROM proposals WHERE id = $1',
+        [proposalId]
+      );
+
+      await client.query('COMMIT');
+      return {
+        ok: true,
+        votes: Number(countRes.rows[0]?.votes ?? 0),
+      };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   },
 };
 
