@@ -10,7 +10,7 @@ const proposalRepository = {
   getTotalCount: () => provider.getTotalCount(),
   create: (proposalData) => provider.create(proposalData),
   getVotedProposalIds: (voterId) => provider.getVotedProposalIds(voterId),
-  voteOnce: (proposalId, voterId) => provider.voteOnce(proposalId, voterId),
+  toggleVote: (proposalId, voterId) => provider.toggleVote(proposalId, voterId),
 };
 
 export default proposalRepository;

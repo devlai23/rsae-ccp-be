@@ -289,9 +289,9 @@ const proposalPostgresProvider = {
   },
 
   /**
-   * One vote per (proposal_id, voter_id). Caller supplies voter_id from cookie.
+   * Toggle vote for (proposal_id, voter_id). Adds support if absent, removes if present.
    */
-  async voteOnce(proposalId, voterId) {
+  async toggleVote(proposalId, voterId) {
     if (isMySql) {
       const conn = await pool.getConnection();
       try {
@@ -316,27 +316,30 @@ const proposalPostgresProvider = {
           };
         }
 
-        try {
+        const [existing] = await conn.execute(
+          'SELECT id FROM proposal_votes WHERE proposal_id = ? AND voter_id = ?',
+          [proposalId, voterId]
+        );
+
+        if (existing?.length) {
+          await conn.execute(
+            'DELETE FROM proposal_votes WHERE proposal_id = ? AND voter_id = ?',
+            [proposalId, voterId]
+          );
+          await conn.execute(
+            'UPDATE proposals SET votes = GREATEST(votes - 1, 0) WHERE id = ?',
+            [proposalId]
+          );
+        } else {
           await conn.execute(
             'INSERT INTO proposal_votes (proposal_id, voter_id) VALUES (?, ?)',
             [proposalId, voterId]
           );
-        } catch (insertErr) {
-          if (insertErr.code === 'ER_DUP_ENTRY') {
-            await conn.rollback();
-            return {
-              ok: false,
-              code: 'already_voted',
-              votes: Number(proposal.votes || 0),
-            };
-          }
-          throw insertErr;
+          await conn.execute(
+            'UPDATE proposals SET votes = votes + 1 WHERE id = ?',
+            [proposalId]
+          );
         }
-
-        await conn.execute(
-          'UPDATE proposals SET votes = votes + 1 WHERE id = ?',
-          [proposalId]
-        );
 
         const [after] = await conn.execute(
           'SELECT votes FROM proposals WHERE id = ?',
@@ -346,6 +349,7 @@ const proposalPostgresProvider = {
         await conn.commit();
         return {
           ok: true,
+          hasVoted: !existing?.length,
           votes: Number(after[0]?.votes ?? 0),
         };
       } catch (e) {
@@ -380,27 +384,31 @@ const proposalPostgresProvider = {
         };
       }
 
-      const insertRes = await client.query(
-        `INSERT INTO proposal_votes (proposal_id, voter_id)
-         VALUES ($1, $2)
-         ON CONFLICT (proposal_id, voter_id) DO NOTHING
-         RETURNING id`,
+      const existingRes = await client.query(
+        `SELECT id FROM proposal_votes
+         WHERE proposal_id = $1 AND voter_id = $2`,
         [proposalId, voterId]
       );
 
-      if (insertRes.rowCount === 0) {
-        await client.query('ROLLBACK');
-        return {
-          ok: false,
-          code: 'already_voted',
-          votes: Number(proposal.votes || 0),
-        };
+      if (existingRes.rowCount > 0) {
+        await client.query(
+          'DELETE FROM proposal_votes WHERE proposal_id = $1 AND voter_id = $2',
+          [proposalId, voterId]
+        );
+        await client.query(
+          'UPDATE proposals SET votes = GREATEST(votes - 1, 0) WHERE id = $1',
+          [proposalId]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO proposal_votes (proposal_id, voter_id) VALUES ($1, $2)`,
+          [proposalId, voterId]
+        );
+        await client.query(
+          'UPDATE proposals SET votes = votes + 1 WHERE id = $1',
+          [proposalId]
+        );
       }
-
-      await client.query(
-        'UPDATE proposals SET votes = votes + 1 WHERE id = $1',
-        [proposalId]
-      );
 
       const countRes = await client.query(
         'SELECT votes FROM proposals WHERE id = $1',
@@ -410,6 +418,7 @@ const proposalPostgresProvider = {
       await client.query('COMMIT');
       return {
         ok: true,
+        hasVoted: existingRes.rowCount === 0,
         votes: Number(countRes.rows[0]?.votes ?? 0),
       };
     } catch (e) {

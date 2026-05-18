@@ -137,7 +137,7 @@ const proposalsController = {
       }
 
       const voterId = getOrCreateVoterId(req, res);
-      const result = await proposalRepository.voteOnce(proposalId, voterId);
+      const result = await proposalRepository.toggleVote(proposalId, voterId);
 
       if (result.code === 'not_found') {
         return res.status(404).json({ error: 'Proposal not found' });
@@ -150,17 +150,9 @@ const proposalsController = {
         });
       }
 
-      if (result.code === 'already_voted') {
-        return res.status(409).json({
-          error: 'You already supported this idea.',
-          votes: result.votes,
-          hasVoted: true,
-        });
-      }
-
       return res.status(200).json({
         votes: result.votes,
-        hasVoted: true,
+        hasVoted: result.hasVoted,
       });
     } catch (error) {
       console.error('Vote error:', error);
