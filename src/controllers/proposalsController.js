@@ -1,3 +1,4 @@
+import { readVoterId, getOrCreateVoterId } from '../lib/voterCookie.js';
 import proposalRepository from '../repositories/proposalRepository.js';
 import auditLogService from '../services/auditLogService.js';
 
@@ -49,7 +50,18 @@ const proposalsController = {
         sort: parseSort(req.query.sort),
       };
 
-      const items = await proposalRepository.getAll(filters);
+      const rawItems = await proposalRepository.getAll(filters);
+
+      const voterId = readVoterId(req);
+      let votedSet = new Set();
+      if (voterId) {
+        votedSet = await proposalRepository.getVotedProposalIds(voterId);
+      }
+
+      const items = rawItems.map((proposal) => ({
+        ...proposal,
+        hasVoted: voterId ? votedSet.has(proposal.id) : false,
+      }));
 
       return res.status(200).json({
         items,
@@ -83,7 +95,14 @@ const proposalsController = {
         return res.status(404).json({ error: 'Proposal not found' });
       }
 
-      return res.status(200).json(proposal);
+      const voterId = readVoterId(req);
+      let hasVoted = false;
+      if (voterId) {
+        const votedSet = await proposalRepository.getVotedProposalIds(voterId);
+        hasVoted = votedSet.has(proposal.id);
+      }
+
+      return res.status(200).json({ ...proposal, hasVoted });
     } catch (error) {
       console.error('Get proposal by id error:', error);
       return res.status(500).json({
@@ -105,6 +124,42 @@ const proposalsController = {
         error:
           process.env.NODE_ENV === 'production'
             ? 'Failed to load tags'
+            : error.message,
+      });
+    }
+  },
+
+  async vote(req, res) {
+    try {
+      const proposalId = Number.parseInt(req.params.id, 10);
+      if (Number.isNaN(proposalId) || proposalId <= 0) {
+        return res.status(400).json({ error: 'Invalid proposal id' });
+      }
+
+      const voterId = getOrCreateVoterId(req, res);
+      const result = await proposalRepository.toggleVote(proposalId, voterId);
+
+      if (result.code === 'not_found') {
+        return res.status(404).json({ error: 'Proposal not found' });
+      }
+
+      if (result.code === 'not_voteable') {
+        return res.status(400).json({
+          error: 'You can only support ideas that are approved for the community feed.',
+          votes: result.votes,
+        });
+      }
+
+      return res.status(200).json({
+        votes: result.votes,
+        hasVoted: result.hasVoted,
+      });
+    } catch (error) {
+      console.error('Vote error:', error);
+      return res.status(500).json({
+        error:
+          process.env.NODE_ENV === 'production'
+            ? 'Failed to record vote'
             : error.message,
       });
     }
