@@ -36,16 +36,6 @@ CREATE TABLE IF NOT EXISTS proposal_comments (
 CREATE INDEX IF NOT EXISTS idx_proposal_comments_proposal_id
   ON proposal_comments(proposal_id);
 
-CREATE TABLE IF NOT EXISTS proposal_votes (
-  id            SERIAL PRIMARY KEY,
-  proposal_id   INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
-  voter_id      VARCHAR(64) NOT NULL,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (proposal_id, voter_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_proposal_votes_voter_id ON proposal_votes (voter_id);
-
 CREATE TABLE IF NOT EXISTS audit_logs (
   id           SERIAL PRIMARY KEY,
   actor_uid    TEXT DEFAULT NULL,
