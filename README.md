@@ -34,9 +34,9 @@ npm install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with your Firebase credentials and Supabase DATABASE_URL
+# Edit .env with your Firebase credentials and MySQL database settings
 
-# Create tables — paste sql/create_tables.sql into the Supabase SQL Editor
+# Create tables — run sql/create_tables_mysql.sql against your MySQL database
 
 # Start development server
 npm run dev
@@ -58,8 +58,29 @@ See [SETUP_GUIDE.md](SETUP_GUIDE.md) for full setup instructions.
 
 ```bash
 npm run dev     # Start development server
+npm run start   # Start production server
 npm run lint    # Run ESLint
 npm run format  # Format all files with Prettier
+```
+
+## Docker
+
+Build the backend image:
+
+```bash
+docker build -t rsae-ccp-be .
+```
+
+Run it locally with your existing `.env`:
+
+```bash
+docker run --env-file .env -p 5050:5050 rsae-ccp-be
+```
+
+Then check the health endpoint:
+
+```bash
+curl http://localhost:5050/health
 ```
 
 ## Editor Setup (VSCode)
@@ -90,13 +111,19 @@ npm run format
 Required `.env` variables (see [.env.example](.env.example)):
 
 - `FIREBASE_SERVICE_ACCOUNT_KEY` - Firebase service account JSON
-- `DATABASE_URL` - Supabase PostgreSQL connection string
+- `DB_HOST` - MySQL host or RDS endpoint
+- `DB_PORT` - MySQL port (usually `3306`)
+- `DB_USER` - MySQL username
+- `DB_PASSWORD` - MySQL password
+- `DB_NAME` - MySQL database name
 - `PORT` - Server port (default: 5050)
 - `FRONTEND_URL` - Production frontend URL for CORS
 - `FRONTEND_URL_DEV` - Development frontend URL for CORS
 - `NODE_ENV` - Environment (development/production)
 
-`rds-config.ini` is only needed when migrating to AWS RDS. See [SETUP_GUIDE.md](SETUP_GUIDE.md).
+The backend now reads database configuration from environment variables in both
+local and deployed environments, so `rds-config.ini` is no longer required for
+startup.
 
 ## Project Structure
 

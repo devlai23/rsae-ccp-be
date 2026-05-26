@@ -1,23 +1,27 @@
 import dotenv from 'dotenv';
-import fs from 'fs';
-import ini from 'ini';
 import mysql2 from 'mysql2/promise';
-import pg from 'pg';
 
 dotenv.config();
 
-const { Pool } = pg;
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingEnvVars = requiredEnvVars.filter(
+  (name) => !process.env[name]?.trim()
+);
 
-const CONFIG_FILE = 'rds-config.ini';
-const config_data = fs.readFileSync(CONFIG_FILE, 'utf-8');
-const config = ini.parse(config_data);
+if (missingEnvVars.length > 0) {
+  throw new Error(
+    `Missing database environment variables: ${missingEnvVars.join(', ')}`
+  );
+}
 
 const pool = mysql2.createPool({
-  host: config.rds.endpoint,
-  port: parseInt(config.rds.port_number),
-  user: config.rds.user_name,
-  password: config.rds.user_pwd,
-  database: config.rds.db_name,
+  // Keep runtime config in env vars so local and deployed environments boot
+  // the same way.
+  host: process.env.DB_HOST,
+  port: Number.parseInt(process.env.DB_PORT || '3306', 10),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

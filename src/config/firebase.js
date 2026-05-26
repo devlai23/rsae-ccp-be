@@ -4,9 +4,17 @@ import admin from 'firebase-admin';
 dotenv.config();
 
 try {
-  const serviceAccount = JSON.parse(
+  const rawServiceAccount = (
     process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}'
-  );
+  ).trim();
+
+  const normalizedServiceAccount =
+    (rawServiceAccount.startsWith("'") && rawServiceAccount.endsWith("'")) ||
+    (rawServiceAccount.startsWith('"') && rawServiceAccount.endsWith('"'))
+      ? rawServiceAccount.slice(1, -1)
+      : rawServiceAccount;
+
+  const serviceAccount = JSON.parse(normalizedServiceAccount);
 
   if (!serviceAccount.project_id) {
     throw new Error(
