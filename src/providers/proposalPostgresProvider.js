@@ -116,10 +116,12 @@ const buildWhereClause = ({ search, category, status, tag }, values) => {
   const clauses = [];
 
   if (search) {
-    const idx = getPlaceholder(values, `%${search}%`);
     const searchOperator = isMySql ? 'LIKE' : 'ILIKE';
+    const titleIdx = getPlaceholder(values, `%${search}%`);
+    const descriptionIdx = getPlaceholder(values, `%${search}%`);
+    const submittedByIdx = getPlaceholder(values, `%${search}%`);
     clauses.push(
-      `(title ${searchOperator} ${idx} OR description ${searchOperator} ${idx} OR submitted_by ${searchOperator} ${idx})`
+      `(title ${searchOperator} ${titleIdx} OR description ${searchOperator} ${descriptionIdx} OR submitted_by ${searchOperator} ${submittedByIdx})`
     );
   }
 
