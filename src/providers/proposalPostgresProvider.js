@@ -50,10 +50,60 @@ const normalizeTags = (value) => {
   return [];
 };
 
+const canonicalizeCategory = (value) => {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.toLowerCase().replace(/&/g, 'and');
+
+  if (normalized.includes('hous')) {
+    return 'Housing';
+  }
+
+  if (normalized.includes('health') || normalized.includes('wellness')) {
+    return 'Health and Wellness';
+  }
+
+  if (normalized.includes('econ')) {
+    return 'Economic Development';
+  }
+
+  if (normalized.includes('art') || normalized.includes('cult')) {
+    return 'Art and Culture';
+  }
+
+  if (normalized.includes('educ')) {
+    return 'Education';
+  }
+
+  return trimmed;
+};
+
+const getCategoryVariants = (value) => {
+  const canonical = canonicalizeCategory(value);
+
+  switch (canonical) {
+    case 'Housing':
+      return ['Housing', 'housing'];
+    case 'Health and Wellness':
+      return ['Health and Wellness', 'Health & Wellness', 'health'];
+    case 'Economic Development':
+      return ['Economic Development', 'Economic development', 'economic'];
+    case 'Art and Culture':
+      return ['Art and Culture', 'Art and culture', 'Arts & Culture', 'arts'];
+    case 'Education':
+      return ['Education', 'education'];
+    default:
+      return canonical ? [canonical] : [];
+  }
+};
+
 const normalizeProposalRow = (row) => ({
   id: row.id,
   title: row.title,
-  category: row.category,
+  category: canonicalizeCategory(row.category),
   description: row.description,
   votes: Number(row.votes || 0),
   submittedBy: row.submittedBy ?? row.submitted_by,
@@ -74,8 +124,15 @@ const buildWhereClause = ({ search, category, status, tag }, values) => {
   }
 
   if (category && category.toLowerCase() !== 'all') {
-    const idx = getPlaceholder(values, category);
-    clauses.push(`category = ${idx}`);
+    const variants = getCategoryVariants(category);
+
+    if (variants.length === 1) {
+      const idx = getPlaceholder(values, variants[0]);
+      clauses.push(`category = ${idx}`);
+    } else if (variants.length > 1) {
+      const placeholders = variants.map((variant) => getPlaceholder(values, variant));
+      clauses.push(`category IN (${placeholders.join(', ')})`);
+    }
   }
 
   if (status && status.toLowerCase() !== 'all') {

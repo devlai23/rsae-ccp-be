@@ -4,6 +4,41 @@ import auditLogService from '../services/auditLogService.js';
 
 const parseSort = (value) => (value === 'oldest' ? 'oldest' : 'newest');
 
+const normalizeCategory = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.toLowerCase().replace(/&/g, 'and');
+
+  if (normalized.includes('hous')) {
+    return 'Housing';
+  }
+
+  if (normalized.includes('health') || normalized.includes('wellness')) {
+    return 'Health and Wellness';
+  }
+
+  if (normalized.includes('econ')) {
+    return 'Economic Development';
+  }
+
+  if (normalized.includes('art') || normalized.includes('cult')) {
+    return 'Art and Culture';
+  }
+
+  if (normalized.includes('educ')) {
+    return 'Education';
+  }
+
+  return trimmed;
+};
+
 const proposalsController = {
   async updateProposalStatus(req, res) {
     try {
@@ -44,7 +79,7 @@ const proposalsController = {
     try {
       const filters = {
         search: req.query.search?.trim() || '',
-        category: req.query.category?.trim() || '',
+        category: normalizeCategory(req.query.category?.trim() || ''),
         status: req.query.status?.trim() || '',
         tag: req.query.tag?.trim() || '',
         sort: parseSort(req.query.sort),
@@ -184,7 +219,7 @@ const proposalsController = {
 
       const newProposal = await proposalRepository.create({
         title: title.trim(),
-        category: category.trim(),
+        category: normalizeCategory(category),
         description: description.trim(),
         submittedBy: submittedBy.trim(),
         tags: Array.isArray(tags) ? tags : [],
