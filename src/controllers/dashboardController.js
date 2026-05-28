@@ -1,6 +1,21 @@
 import dashboardService from '../services/dashboardService.js';
 
 const dashboardController = {
+  async getPublicMetrics(_req, res) {
+    try {
+      const metrics = await dashboardService.getPublicMetrics();
+      return res.status(200).json(metrics);
+    } catch (error) {
+      console.error('Public dashboard metrics error:', error);
+      return res.status(500).json({
+        error:
+          process.env.NODE_ENV === 'production'
+            ? 'Failed to load metrics'
+            : error.message,
+      });
+    }
+  },
+
   async getMetrics(_req, res) {
     try {
       const metrics = await dashboardService.getMetrics();

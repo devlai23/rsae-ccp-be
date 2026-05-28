@@ -5,6 +5,7 @@ import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.get('/public-metrics', dashboardController.getPublicMetrics);
 router.use(authMiddleware);
 router.get('/metrics', dashboardController.getMetrics);
 router.get('/categories', dashboardController.getCategories);

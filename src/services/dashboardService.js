@@ -109,6 +109,22 @@ const dashboardService = {
     return { cards: buildMetricCards(totalCount, pendingCount, approvedCount) };
   },
 
+  async getPublicMetrics() {
+    const [totalCount, statusCounts] = await Promise.all([
+      proposalRepository.getTotalCount(),
+      proposalRepository.getCountsByStatus(),
+    ]);
+    const statusCountMap = new Map(
+      statusCounts.map((row) => [row.status?.toLowerCase(), row.count])
+    );
+    const approvedCount = statusCountMap.get('approved') || 0;
+
+    return {
+      totalSubmissions: totalCount,
+      approvedSubmissions: approvedCount,
+    };
+  },
+
   async getCategories() {
     const [totalCount, categoryCounts] = await Promise.all([
       proposalRepository.getTotalCount(),
