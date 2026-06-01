@@ -4,43 +4,10 @@ import auditLogService from '../services/auditLogService.js';
 
 const authController = {
   async signup(req, res) {
-    try {
-      const { email, password, username, firstname, lastname } = req.body;
-
-      if (!email || !password || !username) {
-        return res.status(400).json({
-          error: 'Email, password, and username are required',
-        });
-      }
-
-      const userRecord = await admin.auth().createUser({
-        email,
-        password,
-        displayName: username,
-      });
-
-      const user = await userRepository.createUser({
-        uid: userRecord.uid,
-        username,
-        email,
-        firstname,
-        lastname,
-      });
-
-      res.status(201).json({
-        message: 'User created successfully',
-        user,
-      });
-    } catch (error) {
-      console.error('Signup error:', error);
-      if (error.code === 'auth/email-already-exists') {
-        return res.status(400).json({ error: 'Email already in use' });
-      }
-      if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ error: 'Username already exists' });
-      }
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    return res.status(403).json({
+      error:
+        'Self-service signup is disabled. An administrator must provision your account.',
+    });
   },
 
   async login(req, res) {
@@ -54,6 +21,13 @@ const authController = {
       }
 
       const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const user = await userRepository.findByUid(decodedToken.uid);
+
+      if (!user) {
+        return res.status(403).json({
+          error: 'This account is not authorized to access the application.',
+        });
+      }
 
       res.cookie('session', idToken, {
         httpOnly: true,
@@ -66,6 +40,7 @@ const authController = {
       res.status(200).json({
         message: 'Login successful',
         uid: decodedToken.uid,
+        user,
       });
 
       await auditLogService.write(
@@ -102,13 +77,13 @@ const authController = {
 
       const user = await userRepository.findByUid(decodedToken.uid);
 
-      return res.json(
-        user || {
-          firebaseUid: decodedToken.uid,
-          email: decodedToken.email,
-          username: decodedToken.email?.split('@')[0] || 'user',
-        }
-      );
+      if (!user) {
+        return res.status(403).json({
+          error: 'This account is not authorized to access the application.',
+        });
+      }
+
+      return res.json(user);
     } catch (error) {
       console.error('ME endpoint error:', error);
       res.status(401).json({ error: 'Authentication failed' });
@@ -180,17 +155,13 @@ const authController = {
       }
 
       const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const user = await userRepository.findByUid(decodedToken.uid);
 
-      const user = await userRepository.upsertUser({
-        uid: decodedToken.uid,
-        username:
-          decodedToken.name?.replace(/\s+/g, '_').toLowerCase() ||
-          decodedToken.email?.split('@')[0] ||
-          `user_${decodedToken.uid.substring(0, 8)}`,
-        email: decodedToken.email,
-        firstname: decodedToken.name?.split(' ')[0] || null,
-        lastname: decodedToken.name?.split(' ').slice(1).join(' ') || null,
-      });
+      if (!user) {
+        return res.status(403).json({
+          error: 'This Google account is not authorized to access the application.',
+        });
+      }
 
       res.cookie('session', idToken, {
         httpOnly: true,
@@ -219,11 +190,6 @@ const authController = {
       );
     } catch (error) {
       console.error('Token handling error:', error);
-      if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
-        return res
-          .status(400)
-          .json({ error: 'Username already exists, please choose another' });
-      }
       res.status(500).json({ error: 'Internal server error' });
     }
   },
